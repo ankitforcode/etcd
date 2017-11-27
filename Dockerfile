@@ -34,7 +34,7 @@ FROM scratch
 
 COPY --from=BUILD /usr/local/bin/etcd3 /usr/bin/etcd3
 COPY --from=BUILD /usr/local/bin/etcdctl3 /usr/bin/etcdctl3
-COPY --from=BUILD/go/src/github.com/ankitforcode/ec2cluster/etcd-aws /etcd-aws
+COPY --from=BUILD /go/src/github.com/ankitforcode/ec2cluster/etcd-aws /etcd-aws
 VOLUME /src 
 
 WORKDIR /src 
