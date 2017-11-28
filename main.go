@@ -81,7 +81,7 @@ func main() {
 
 	peerProtocol = "http"
 	clientProtocol = "http"
-	etcdClientPort = "2380"
+	etcdClientPort = "2379"
 	awsSession := session.New()
 	if region := os.Getenv("AWS_REGION"); region != "" {
 		awsSession.Config.WithRegion(region)
