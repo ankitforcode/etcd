@@ -30,7 +30,12 @@ RUN go get -u github.com/golang/lint/golint \
 
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o etcd-aws
 
-FROM scratch
+FROM alpine:latest
+
+RUN apk --update --no-cache add \
+    openssl \
+    ca-certificates \
+    && update-ca-certificates 
 
 COPY --from=BUILD /usr/local/bin/etcd3 /usr/bin/etcd3
 COPY --from=BUILD /usr/local/bin/etcdctl3 /usr/bin/etcdctl3
