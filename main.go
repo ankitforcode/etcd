@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	awsutils "github.com/ankitforcode/aws-utils"
+	"github.com/ankitforcode/awsutils"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/coreos/etcd/clientv3"
 )
