@@ -16,6 +16,7 @@ import (
 
 	"github.com/ankitforcode/awsutils"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/coreos/etcd/clientv3"
 )
 
@@ -56,6 +57,7 @@ type etcdMember struct {
 }
 
 var (
+	localInstance         *ec2.Instance
 	etcdPeerPort          string
 	peerProtocol          string
 	clientProtocol        string
@@ -72,6 +74,13 @@ func main() {
 	if av := os.Getenv("ETCD_MAJOR_VERSION"); av != "" {
 		defaultEtcdMajorVersion = av
 	}
+	defaultLifecycleQueueName := ""
+	if lq := os.Getenv("LIFECYCLE_QUEUE_NAME"); lq != "" {
+		defaultLifecycleQueueName = lq
+	}
+	lifecycleQueueName := flag.String("lifecycle-queue-name", defaultLifecycleQueueName,
+		"The name of the lifecycle SQS queue (optional). "+
+			"Environment variable: LIFECYCLE_QUEUE_NAME")
 	defaultPeerPort := "2380"
 	if pp := os.Getenv("ETCD_PEER_PORT"); pp != "" {
 		defaultPeerPort = pp
@@ -137,6 +146,8 @@ func main() {
 			time.Sleep(time.Second)
 		}
 	}()
+
+	go watchLifecycleEvents(s, *lifecycleQueueName)
 
 	cmd := exec.Command(fmt.Sprintf("etcd%s", svc.etcdMajorVersion))
 	cmd.Stdout = os.Stdout
