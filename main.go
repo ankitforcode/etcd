@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	awsutils "github.com/ankitforcode/aws-utils"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/coreos/etcd/clientv3"
 )
@@ -54,10 +55,14 @@ type etcdMember struct {
 	ClientURLs []string `json:"clientURLs,omitempty"`
 }
 
-var etcdPeerPort string
-var peerProtocol string
-var clientProtocol string
-var etcdClientPort string
+var (
+	etcdPeerPort          string
+	peerProtocol          string
+	clientProtocol        string
+	etcdClientPort        string
+	etcdHeartbeatInterval uint
+	etcdElectionTimeout   uint
+)
 
 func main() {
 	svc := new(Service)
@@ -82,26 +87,24 @@ func main() {
 	peerProtocol = "http"
 	clientProtocol = "http"
 	etcdClientPort = "2379"
+	etcdElectionTimeout = 500
+	etcdHeartbeatInterval = 100
 	awsSession := session.New()
 	if region := os.Getenv("AWS_REGION"); region != "" {
 		awsSession.Config.WithRegion(region)
 	}
 	var err error
 	if svc.instance == "" {
-		svc.instance, err = DiscoverInstanceID()
+		svc.instance, err = awsutils.DiscoverInstanceID()
 		if err != nil {
 			log.Fatalf(err.Error())
 		}
 	}
-	s := &Cluster{
+	s := &awsutils.Cluster{
 		AwsSession: awsSession,
 		InstanceID: svc.instance,
 		TagName:    svc.clusterTagName,
 	}
-	// asg, err := s.AutoscalingGroup()
-	// if err != nil || asg == nil {
-	// 	log.Fatalf("instance not running inside autoscaling group.")
-	// }
 
 	localInstance, err := s.Instance()
 	if err != nil {
@@ -147,6 +150,8 @@ func main() {
 		fmt.Sprintf("ETCD_INITIAL_CLUSTER_STATE=%s", initialClusterState),
 		fmt.Sprintf("ETCD_INITIAL_CLUSTER=%s", strings.Join(initialCluster, ",")),
 		fmt.Sprintf("ETCD_INITIAL_ADVERTISE_PEER_URLS=%s://%s:%s", peerProtocol, *localInstance.PrivateIpAddress, etcdPeerPort),
+		fmt.Sprintf("ETCD_HEARTBEAT_INTERVAL=%d", etcdHeartbeatInterval),
+		fmt.Sprintf("ETCD_ELECTION_TIMEOUT=%d", etcdElectionTimeout),
 		// fmt.Sprintf("ETCD_CERT_FILE=%s", *etcdCertFile),
 		// fmt.Sprintf("ETCD_KEY_FILE=%s", *etcdKeyFile),
 		// fmt.Sprintf("ETCD_CLIENT_CERT_AUTH=%s", *etcdClientCertAuth),
@@ -155,8 +160,6 @@ func main() {
 		// fmt.Sprintf("ETCD_PEER_KEY_FILE=%s", *etcdPeerKeyFile),
 		// fmt.Sprintf("ETCD_PEER_CLIENT_CERT_AUTH=%s", *etcdPeerClientCertAuth),
 		// fmt.Sprintf("ETCD_PEER_TRUSTED_CA_FILE=%s", *etcdPeerTrustedCaFile),
-		// fmt.Sprintf("ETCD_HEARTBEAT_INTERVAL=%s", *etcdHeartbeatInterval),
-		// fmt.Sprintf("ETCD_ELECTION_TIMEOUT=%s", *etcdElectionTimeout),
 	}
 	asg, _ := s.AutoscalingGroup()
 	if asg != nil {
@@ -170,7 +173,7 @@ func main() {
 	}
 }
 
-func buildCluster(s *Cluster) (initialClusterState string, initialCluster []string, err error) {
+func buildCluster(s *awsutils.Cluster) (initialClusterState string, initialCluster []string, err error) {
 	localInstance, err := s.Instance()
 	if err != nil {
 		return "", nil, err

@@ -15,9 +15,9 @@ RUN cd /tmp \
     && rm -rf etcd-v3.2.10-linux-amd64*
 
 
-COPY . /go/src/github.com/ankitforcode/ec2cluster
+COPY . /go/src/github.com/ankitforcode/etcd-aws
 
-WORKDIR /go/src/github.com/ankitforcode/ec2cluster
+WORKDIR /go/src/github.com/ankitforcode/etcd-aws
 
 # Below command will perform linting and 
 # gofmt to check any missing dependency.
@@ -39,7 +39,7 @@ RUN apk --update --no-cache add \
 
 COPY --from=BUILD /usr/local/bin/etcd3 /usr/bin/etcd3
 COPY --from=BUILD /usr/local/bin/etcdctl3 /usr/bin/etcdctl3
-COPY --from=BUILD /go/src/github.com/ankitforcode/ec2cluster/etcd-aws /etcd-aws
+COPY --from=BUILD /go/src/github.com/ankitforcode/etcd-aws/etcd-aws /etcd-aws
 VOLUME /src 
 
 WORKDIR /src 
