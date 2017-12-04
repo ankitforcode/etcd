@@ -102,6 +102,7 @@ func main() {
 	if region := os.Getenv("AWS_REGION"); region != "" {
 		awsSession.Config.WithRegion(region)
 	}
+	awsutils.GuessRegion(awsSession.Config)
 	var err error
 	if svc.instance == "" {
 		svc.instance, err = awsutils.DiscoverInstanceID()
