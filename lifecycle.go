@@ -51,9 +51,12 @@ func handleLifecycleEvent(m *awsutils.LifecycleMessage) (shouldContinue bool, er
 func watchLifecycleEvents(s *awsutils.Cluster, queueName string) {
 	localInstance, _ = s.Instance()
 	for {
-		q, _ := LifecycleEventQueueURL(s, queueName)
+		q, err := LifecycleEventQueueURL(s, queueName)
+		if err != nil {
+			log.Fatalf("ERROR: LifecycleEventQueueURL: %s", err)
+		}
 		log.Printf("SQS queue URL: %s", q)
-		err := s.WatchLifecycleEvents(q, handleLifecycleEvent)
+		err = s.WatchLifecycleEvents(q, handleLifecycleEvent)
 		if err == awsutils.ErrLifecycleHookNotFound {
 			log.Printf("WARNING: %s", err)
 			time.Sleep(10 * time.Second)
@@ -72,7 +75,6 @@ func LifecycleEventQueueURL(s *awsutils.Cluster, queueName string) (string, erro
 	if err != nil {
 		return "", err
 	}
-
 	autoscalingSvc := autoscaling.New(s.AwsSession)
 	resp, err := autoscalingSvc.DescribeLifecycleHooks(&autoscaling.DescribeLifecycleHooksInput{
 		AutoScalingGroupName: asg.AutoScalingGroupName,
@@ -80,7 +82,6 @@ func LifecycleEventQueueURL(s *awsutils.Cluster, queueName string) (string, erro
 	if err != nil {
 		return "", err
 	}
-
 	sqsSvc := sqs.New(s.AwsSession)
 	for _, hook := range resp.LifecycleHooks {
 		if !strings.HasPrefix(*hook.NotificationTargetARN, "arn:aws:sqs:") {
