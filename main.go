@@ -26,9 +26,8 @@ import (
 
 // Service :
 type Service struct {
-	instance         string
-	clusterTagName   string
-	etcdMajorVersion string
+	instance       string
+	clusterTagName string
 }
 
 type etcdState struct {
@@ -210,7 +209,7 @@ func main() {
 
 	go watchLifecycleEvents(s, *lifecycleQueueName)
 
-	cmd := exec.Command(fmt.Sprintf("etcd%s", svc.etcdMajorVersion))
+	cmd := exec.Command(fmt.Sprintf("etcd%d", *etcdMajorVersion))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = []string{
