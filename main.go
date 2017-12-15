@@ -22,9 +22,8 @@ import (
 
 // Service :
 type Service struct {
-	instance         string
-	clusterTagName   string
-	etcdMajorVersion string
+	instance       string
+	clusterTagName string
 }
 
 type etcdState struct {
@@ -70,10 +69,6 @@ func main() {
 	svc := new(Service)
 	flag.StringVar(&svc.instance, "instance", "", "The instance ID of the cluster member. If not supplied, then the instance ID is determined from EC2 metadata")
 	flag.StringVar(&svc.clusterTagName, "clusterTagName", "aws:autoscaling:groupName", "The instance tag that is common to all members of the cluster")
-	defaultEtcdMajorVersion := "3"
-	if av := os.Getenv("ETCD_MAJOR_VERSION"); av != "" {
-		defaultEtcdMajorVersion = av
-	}
 	defaultLifecycleQueueName := ""
 	if lq := os.Getenv("LIFECYCLE_QUEUE_NAME"); lq != "" {
 		defaultLifecycleQueueName = lq
@@ -88,9 +83,6 @@ func main() {
 	flag.StringVar(&etcdPeerPort, "etcd-peer-port", defaultPeerPort,
 		"Etcd peer port number. "+
 			"Environment variable: ETCD_PEER_PORT")
-	flag.StringVar(&svc.etcdMajorVersion, "etcd-major-version", defaultEtcdMajorVersion,
-		"Etcd API version (2, 3). "+
-			"Environment variable: ETCD_MAJOR_VERSION")
 	flag.Parse()
 
 	peerProtocol = "http"
@@ -150,7 +142,7 @@ func main() {
 
 	go watchLifecycleEvents(s, *lifecycleQueueName)
 
-	cmd := exec.Command(fmt.Sprintf("etcd%s", svc.etcdMajorVersion))
+	cmd := exec.Command("etcd3")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = []string{
@@ -164,14 +156,6 @@ func main() {
 		fmt.Sprintf("ETCD_INITIAL_ADVERTISE_PEER_URLS=%s://%s:%s", peerProtocol, *localInstance.PrivateIpAddress, etcdPeerPort),
 		fmt.Sprintf("ETCD_HEARTBEAT_INTERVAL=%d", etcdHeartbeatInterval),
 		fmt.Sprintf("ETCD_ELECTION_TIMEOUT=%d", etcdElectionTimeout),
-		// fmt.Sprintf("ETCD_CERT_FILE=%s", *etcdCertFile),
-		// fmt.Sprintf("ETCD_KEY_FILE=%s", *etcdKeyFile),
-		// fmt.Sprintf("ETCD_CLIENT_CERT_AUTH=%s", *etcdClientCertAuth),
-		// fmt.Sprintf("ETCD_TRUSTED_CA_FILE=%s", *etcdTrustedCaFile),
-		// fmt.Sprintf("ETCD_PEER_CERT_FILE=%s", *etcdPeerCertFile),
-		// fmt.Sprintf("ETCD_PEER_KEY_FILE=%s", *etcdPeerKeyFile),
-		// fmt.Sprintf("ETCD_PEER_CLIENT_CERT_AUTH=%s", *etcdPeerClientCertAuth),
-		// fmt.Sprintf("ETCD_PEER_TRUSTED_CA_FILE=%s", *etcdPeerTrustedCaFile),
 	}
 	asg, _ := s.AutoscalingGroup()
 	if asg != nil {
@@ -247,28 +231,28 @@ func buildCluster(s *awsutils.Cluster) (initialClusterState string, initialClust
 	return initialClusterState, initialCluster, nil
 }
 
-func getAPIResponse(privateIpAddress string, instanceId string, path string, method string) (*http.Response, error) {
-	return getAPIResponseWithBody(privateIpAddress, instanceId, path, method, "", nil)
+func getAPIResponse(privateIPAddress string, instanceID string, path string, method string) (*http.Response, error) {
+	return getAPIResponseWithBody(privateIPAddress, instanceID, path, method, "", nil)
 }
 
-func getAPIResponseWithBody(privateIpAddress string, instanceId string, path string, method string, bodyType string, body io.Reader) (*http.Response, error) {
+func getAPIResponseWithBody(privateIPAddress string, instanceID string, path string, method string, bodyType string, body io.Reader) (*http.Response, error) {
 	var resp *http.Response
 	var err error
 	var req *http.Request
 	if bodyType == "" {
 		req, _ = http.NewRequest(method, fmt.Sprintf("%s://%s:%s/v2/%s",
-			clientProtocol, privateIpAddress, etcdClientPort, path), body)
+			clientProtocol, privateIPAddress, etcdClientPort, path), body)
 	}
 	client, err := getHTTPClient()
 	if bodyType != "" {
 		client.Post(fmt.Sprintf("%s://%s:%s/v2/%s",
-			clientProtocol, privateIpAddress, etcdClientPort, path), bodyType, body)
+			clientProtocol, privateIPAddress, etcdClientPort, path), bodyType, body)
 	} else {
 		resp, err = client.Do(req)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("%s: %s %s://%s:%s/v2/%s: %s",
-			instanceId, method, clientProtocol, privateIpAddress, etcdClientPort, path, err)
+			instanceID, method, clientProtocol, privateIPAddress, etcdClientPort, path, err)
 	}
 	return resp, nil
 }
