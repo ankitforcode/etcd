@@ -148,8 +148,6 @@ func main() {
 	clientProtocol = "http"
 	if *etcdCertFile != "" {
 		clientTLSEnabled = true
-		*etcdClientCertAuth = true
-		*etcdPeerClientCertAuth = true
 		clientProtocol = "https"
 	}
 	peerProtocol = "http"
