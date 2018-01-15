@@ -184,6 +184,7 @@ func main() {
 		var etcdClient *clientv3.Client
 		for {
 			log.Printf("etcd connecting")
+			log.Println(fmt.Sprintf("%s://%s:%d", clientProtocol, *localInstance.PrivateDnsName, *etcdClientPort))
 			etcdClient, err = getEtcdClient([]string{fmt.Sprintf("%s://%s:%d",
 				clientProtocol, *localInstance.PrivateDnsName, *etcdClientPort)})
 			if err != nil {
