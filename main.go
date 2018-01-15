@@ -185,7 +185,7 @@ func main() {
 		for {
 			log.Printf("etcd connecting")
 			etcdClient, err = getEtcdClient([]string{fmt.Sprintf("%s://%s:%d",
-				clientProtocol, *localInstance.PrivateIpAddress, *etcdClientPort)})
+				clientProtocol, *localInstance.PrivateDnsName, *etcdClientPort)})
 			if err != nil {
 				log.Fatalf("ERROR: %s", err)
 			}
@@ -213,13 +213,13 @@ func main() {
 	cmd.Env = []string{
 		fmt.Sprintf("ETCD_NAME=%s", *localInstance.InstanceId),
 		fmt.Sprintf("ETCD_DATA_DIR=%s", "/var/lib/etcd"),
-		fmt.Sprintf("ETCD_ADVERTISE_CLIENT_URLS=%s://%s:%d", clientProtocol, *localInstance.PrivateIpAddress, *etcdClientPort),
+		fmt.Sprintf("ETCD_ADVERTISE_CLIENT_URLS=%s://%s:%d", clientProtocol, *localInstance.PrivateDnsName, *etcdClientPort),
 		fmt.Sprintf("ETCD_DATA_DIR=%s", *dataDir),
 		fmt.Sprintf("ETCD_LISTEN_CLIENT_URLS=%s://0.0.0.0:%d", clientProtocol, *etcdClientPort),
 		fmt.Sprintf("ETCD_LISTEN_PEER_URLS=%s://0.0.0.0:%d", peerProtocol, *etcdPeerPort),
 		fmt.Sprintf("ETCD_INITIAL_CLUSTER_STATE=%s", initialClusterState),
 		fmt.Sprintf("ETCD_INITIAL_CLUSTER=%s", strings.Join(initialCluster, ",")),
-		fmt.Sprintf("ETCD_INITIAL_ADVERTISE_PEER_URLS=%s://%s:%d", peerProtocol, *localInstance.PrivateIpAddress, *etcdPeerPort),
+		fmt.Sprintf("ETCD_INITIAL_ADVERTISE_PEER_URLS=%s://%s:%d", peerProtocol, *localInstance.PrivateDnsName, *etcdPeerPort),
 		fmt.Sprintf("ETCD_HEARTBEAT_INTERVAL=%d", *etcdHeartbeatInterval),
 		fmt.Sprintf("ETCD_ELECTION_TIMEOUT=%d", *etcdElectionTimeout),
 		fmt.Sprintf("ETCD_CERT_FILE=%s", *etcdCertFile),
@@ -255,39 +255,39 @@ func buildCluster(s *awsutils.Cluster) (initialClusterState string, initialClust
 	initialClusterState = "new"
 	initialCluster = []string{}
 	for _, instance := range clusterInstances {
-		if instance.PrivateIpAddress == nil {
+		if instance.PrivateDnsName == nil {
 			continue
 		}
-		log.Printf("getting stats from %s (%s)", *instance.InstanceId, *instance.PrivateIpAddress)
+		log.Printf("getting stats from %s (%s)", *instance.InstanceId, *instance.PrivateDnsName)
 
 		// add this instance to the initialCluster expression
 		initialCluster = append(initialCluster, fmt.Sprintf("%s=%s://%s:%d",
-			*instance.InstanceId, peerProtocol, *instance.PrivateIpAddress, *etcdPeerPort))
+			*instance.InstanceId, peerProtocol, *instance.PrivateDnsName, *etcdPeerPort))
 
 		// skip the local node, since we know it is not running yet
 		if *instance.InstanceId == *localInstance.InstanceId {
 			continue
 		}
 		path := "stats/self"
-		resp, err := getAPIResponse(*instance.PrivateIpAddress, *instance.InstanceId, path, http.MethodGet)
+		resp, err := getAPIResponse(*instance.PrivateDnsName, *instance.InstanceId, path, http.MethodGet)
 		if err != nil {
 			log.Printf("%s: %s://%s:%d/v2/%s: %s", *instance.InstanceId, clientProtocol,
-				*instance.PrivateIpAddress, *etcdClientPort, path, err)
+				*instance.PrivateDnsName, *etcdClientPort, path, err)
 			continue
 		}
 		nodeState := etcdState{}
 		if err := json.NewDecoder(resp.Body).Decode(&nodeState); err != nil {
 			log.Printf("%s: %s://%s:%d/v2/%s: %s", *instance.InstanceId, clientProtocol,
-				*instance.PrivateIpAddress, *etcdClientPort, path, err)
+				*instance.PrivateDnsName, *etcdClientPort, path, err)
 			continue
 		}
 		if nodeState.LeaderInfo.Leader == "" {
 			log.Printf("%s: %s://%s:%d/v2/%s: alive, no leader", *instance.InstanceId, clientProtocol,
-				*instance.PrivateIpAddress, *etcdClientPort, path)
+				*instance.PrivateDnsName, *etcdClientPort, path)
 			continue
 		}
 		log.Printf("%s: %s://%s:%d/v2/%s: has leader %s", *instance.InstanceId, clientProtocol,
-			*instance.PrivateIpAddress, *etcdClientPort, path, nodeState.LeaderInfo.Leader)
+			*instance.PrivateDnsName, *etcdClientPort, path, nodeState.LeaderInfo.Leader)
 		if initialClusterState != "existing" {
 			initialClusterState = "existing"
 			// inform the node we found about the new node we're about to add so that
@@ -296,20 +296,20 @@ func buildCluster(s *awsutils.Cluster) (initialClusterState string, initialClust
 			m := etcdMember{
 				Name: *localInstance.InstanceId,
 				PeerURLs: []string{fmt.Sprintf("%s://%s:%d",
-					peerProtocol, *localInstance.PrivateIpAddress, *etcdPeerPort)},
+					peerProtocol, *localInstance.PrivateDnsName, *etcdPeerPort)},
 			}
 			body, _ := json.Marshal(m)
-			getAPIResponseWithBody(*instance.PrivateIpAddress, *instance.InstanceId, "members", http.MethodPost, "application/json", bytes.NewReader(body))
+			getAPIResponseWithBody(*instance.PrivateDnsName, *instance.InstanceId, "members", http.MethodPost, "application/json", bytes.NewReader(body))
 		}
 	}
 	return initialClusterState, initialCluster, nil
 }
 
-func getAPIResponse(privateIPAddress string, instanceID string, path string, method string) (*http.Response, error) {
-	return getAPIResponseWithBody(privateIPAddress, instanceID, path, method, "", nil)
+func getAPIResponse(PrivateDnsName string, instanceID string, path string, method string) (*http.Response, error) {
+	return getAPIResponseWithBody(PrivateDnsName, instanceID, path, method, "", nil)
 }
 
-func getAPIResponseWithBody(privateIPAddress string, instanceID string, path string, method string, bodyType string, body io.Reader) (*http.Response, error) {
+func getAPIResponseWithBody(PrivateDnsName string, instanceID string, path string, method string, bodyType string, body io.Reader) (*http.Response, error) {
 	var resp *http.Response
 	var err error
 	var apiVersion string
@@ -318,7 +318,7 @@ func getAPIResponseWithBody(privateIPAddress string, instanceID string, path str
 		apiVersion = "/v2"
 	}
 	req, err = http.NewRequest(method, fmt.Sprintf("%s://%s:%d%s/%s",
-		clientProtocol, privateIPAddress, *etcdClientPort, apiVersion, path), body)
+		clientProtocol, PrivateDnsName, *etcdClientPort, apiVersion, path), body)
 
 	if err != nil {
 		return resp, fmt.Errorf("%s: %s %s: %s",
