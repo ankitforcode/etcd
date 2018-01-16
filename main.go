@@ -110,7 +110,7 @@ func main() {
 		"Path to the client server TLS key file. "+
 			"Environment variable: ETCD_KEY_FILE")
 
-	etcdClientCertAuth := flag.Bool("etcd-client-cert-auth", false,
+	etcdClientCertAuth := flag.String("etcd-client-cert-auth", "false",
 		"Enable client cert authentication. "+
 			"Environment variable: ETCD_CLIENT_CERT_AUTH")
 
@@ -126,7 +126,7 @@ func main() {
 		"Path to the peer server TLS key file. "+
 			"Environment variable: ETCD_PEER_KEY_FILE")
 
-	etcdPeerClientCertAuth := flag.Bool("etcd-peer-client-cert-auth", false,
+	etcdPeerClientCertAuth := flag.String("etcd-peer-client-cert-auth", "false",
 		"Enable peer client cert authentication. "+
 			"Environment variable: ETCD_PEER_CLIENT_CERT_AUTH")
 
@@ -224,11 +224,11 @@ func main() {
 		fmt.Sprintf("ETCD_ELECTION_TIMEOUT=%d", *etcdElectionTimeout),
 		fmt.Sprintf("ETCD_CERT_FILE=%s", *etcdCertFile),
 		fmt.Sprintf("ETCD_KEY_FILE=%s", *etcdKeyFile),
-		fmt.Sprintf("ETCD_CLIENT_CERT_AUTH=%v", *etcdClientCertAuth),
+		fmt.Sprintf("ETCD_CLIENT_CERT_AUTH=%s", *etcdClientCertAuth),
 		fmt.Sprintf("ETCD_TRUSTED_CA_FILE=%s", *etcdTrustedCaFile),
 		fmt.Sprintf("ETCD_PEER_CERT_FILE=%s", *etcdPeerCertFile),
 		fmt.Sprintf("ETCD_PEER_KEY_FILE=%s", *etcdPeerKeyFile),
-		fmt.Sprintf("ETCD_PEER_CLIENT_CERT_AUTH=%v", *etcdPeerClientCertAuth),
+		fmt.Sprintf("ETCD_PEER_CLIENT_CERT_AUTH=%s", *etcdPeerClientCertAuth),
 		fmt.Sprintf("ETCD_PEER_TRUSTED_CA_FILE=%s", *etcdPeerTrustedCaFile),
 	}
 	asg, _ := s.AutoscalingGroup()
