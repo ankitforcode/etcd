@@ -40,11 +40,10 @@ func handleLifecycleEvent(m *awsutils.LifecycleMessage) (shouldContinue bool, er
 		"InstanceID": m.EC2InstanceID,
 		"MemberID":   memberID}).Info("removing from cluster")
 
-	resp, err = getAPIResponse(*localInstance.PrivateIpAddress, *localInstance.InstanceId, fmt.Sprintf("members/%s", memberID), http.MethodDelete)
+	resp, err = getAPIResponse(*localInstance.PrivateDnsName, *localInstance.InstanceId, fmt.Sprintf("members/%s", memberID), http.MethodDelete)
 	if err != nil {
 		return false, err
 	}
-
 	return false, nil
 }
 

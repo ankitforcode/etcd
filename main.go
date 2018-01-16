@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -179,32 +178,29 @@ func main() {
 	}
 	initialClusterState, initialCluster, err := buildCluster(s)
 	log.Printf("initial cluster: %s %s", initialClusterState, initialCluster)
-	go func() {
-		// wait for etcd to start
-		var etcdClient *clientv3.Client
-		for {
-			log.Printf("etcd connecting")
-			log.Println(fmt.Sprintf("%s://%s:%d", clientProtocol, *localInstance.PrivateDnsName, *etcdClientPort))
-			etcdClient, err = getEtcdClient([]string{fmt.Sprintf("%s://%s:%d",
-				clientProtocol, *localInstance.PrivateDnsName, *etcdClientPort)})
-			if err != nil {
-				log.Fatalf("ERROR: %s", err)
-			}
-			defer etcdClient.Close()
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-			err := etcdClient.Sync(ctx)
-			cancel()
-			if err != nil {
-				log.Printf("waiting for etcd to start: %s", err)
-			} else {
-				log.Printf("etcd connected")
-				resp, _ := etcdClient.MemberList(context.Background())
-				log.Printf("etcd members: %s", resp.Members)
-				break
-			}
-			time.Sleep(time.Second)
-		}
-	}()
+	// go func() {
+	// 	// wait for etcd to start
+	// 	var etcdClient *clientv3.Client
+	// 	for {
+	// 		log.Printf("etcd connecting")
+	// 		log.Println(fmt.Sprintf("%s://%s:%d", clientProtocol, *localInstance.PrivateDnsName, *etcdClientPort))
+	// 		etcdClient, err = getEtcdClient([]string{fmt.Sprintf("%s://%s:%d",
+	// 			clientProtocol, *localInstance.PrivateDnsName, *etcdClientPort)})
+	// 		if err != nil {
+	// 			log.Fatalf("ERROR: %s", err)
+	// 		}
+	// 		defer etcdClient.Close()
+	// 		ctx, cancel := context.WithTimeout(context.Background(), (5 * time.Second))
+	// 		defer cancel()
+	// 		if err := etcdClient.Sync(ctx); err != nil {
+	// 			log.Printf("waiting for etcd to start: %s", err)
+	// 		}
+	// 		log.Printf("etcd connected")
+	// 		resp, _ := etcdClient.MemberList(context.Background())
+	// 		log.Printf("etcd members: %s", resp.Members)
+	// 		time.Sleep(5 * time.Second)
+	// 	}
+	// }()
 
 	go watchLifecycleEvents(s, *lifecycleQueueName)
 
