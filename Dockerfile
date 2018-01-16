@@ -7,7 +7,7 @@ RUN apk --update --no-cache add \
     && update-ca-certificates 
 
 # This shall support both version of ETCD as things needs to be backward compatible.
-ENV ETCD_VER_3 v3.2.10
+ENV ETCD_VER_3 v3.2.14
 ENV ETCD_VER_2 v2.3.8 
 
 RUN cd /tmp \
