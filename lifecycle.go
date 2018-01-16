@@ -17,7 +17,7 @@ func handleLifecycleEvent(m *awsutils.LifecycleMessage) (shouldContinue bool, er
 	if m.LifecycleTransition != "autoscaling:EC2_INSTANCE_TERMINATING" {
 		return true, nil
 	}
-	resp, err := getAPIResponse(*localInstance.PrivateIpAddress, *localInstance.InstanceId, "members", http.MethodGet)
+	resp, err := getAPIResponse(*localInstance.PrivateDnsName, *localInstance.InstanceId, "members", http.MethodGet)
 	if err != nil {
 		return false, err
 	}
