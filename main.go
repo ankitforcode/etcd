@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -22,7 +21,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
-	"google.golang.org/grpc/grpclog"
 )
 
 // Service :
@@ -180,36 +178,7 @@ func main() {
 	}
 	initialClusterState, initialCluster, err := buildCluster(s)
 	log.Printf("initial cluster: %s %s", initialClusterState, initialCluster)
-	go func() {
-		// wait for etcd to start
-		var etcdClient *clientv3.Client
-		clientv3.SetLogger(grpclog.NewLoggerV2(os.Stderr, os.Stderr, os.Stderr))
-
-		for {
-			log.Printf("etcd connecting")
-			etcdClient, err = getEtcdClient([]string{fmt.Sprintf("%s://%s:%d",
-				clientProtocol, *localInstance.PrivateIpAddress, etcdClientPort)})
-			if err != nil {
-				log.Fatalf("ERROR: %s", err)
-			}
-			defer etcdClient.Close()
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-			err := etcdClient.Sync(ctx)
-			cancel()
-			if err != nil {
-				log.Printf("waiting for etcd to start: %s", err)
-			} else {
-				log.Printf("etcd connected")
-				resp, _ := etcdClient.MemberList(context.Background())
-				log.Printf("etcd members: %s", resp.Members)
-				break
-			}
-			time.Sleep(time.Second)
-		}
-	}()
-
 	go watchLifecycleEvents(s, *lifecycleQueueName)
-
 	cmd := exec.Command(fmt.Sprintf("etcd%d", *etcdMajorVersion))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
